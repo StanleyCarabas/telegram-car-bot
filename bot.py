@@ -8,7 +8,7 @@ from telegram.ext import (
 )
 import os
 
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("BOT_TOKEN")  # токен из Environment Variable
 
 TAX_RATE = 0.0625
 REGISTRATION_FEE = 431
@@ -30,34 +30,29 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
-
     if text == "Enter Vehicle Price":
         context.user_data["mode"] = "price"
-        await update.message.reply_text("Enter vehicle price:")
-
+        await update.message.reply_text("Enter vehicle price (example: 10500):")
     elif text == "Enter Total (Out-the-Door)":
         context.user_data["mode"] = "total"
-        await update.message.reply_text("Enter total amount:")
+        await update.message.reply_text("Enter total amount (example: 12000):")
 
 async def calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         text = update.message.text.replace("$", "").replace(",", "").strip()
         value = float(text)
-
         mode = context.user_data.get("mode")
 
         if mode == "price":
             price = value
             tax = price * TAX_RATE
             total = price + tax + REGISTRATION_FEE
-
         elif mode == "total":
             total = value
             price = (total - REGISTRATION_FEE) / (1 + TAX_RATE)
             tax = price * TAX_RATE
-
         else:
-            await update.message.reply_text("Press a button first.")
+            await update.message.reply_text("Please press a button first.", reply_markup=keyboard)
             return
 
         response = (
@@ -70,7 +65,7 @@ async def calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(response, reply_markup=keyboard)
 
     except ValueError:
-        await update.message.reply_text("Enter a valid number.")
+        await update.message.reply_text("Please enter a valid number (example: 10500).")
 
 app = ApplicationBuilder().token(TOKEN).build()
 
