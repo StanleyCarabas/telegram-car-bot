@@ -8,13 +8,11 @@ from telegram.ext import (
 )
 import os
 
-# Получаем токен из Environment Variable (не вставляем прямо в код!)
 TOKEN = os.getenv("BOT_TOKEN")
 
 TAX_RATE = 0.0625
 REGISTRATION_FEE = 431
 
-# Кнопки
 keyboard = ReplyKeyboardMarkup(
     [
         ["Enter Vehicle Price"],
@@ -23,7 +21,6 @@ keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
-# Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text(
@@ -31,17 +28,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=keyboard,
     )
 
-# Обработка кнопок
 async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if text == "Enter Vehicle Price":
         context.user_data["mode"] = "price"
-        await update.message.reply_text("Enter vehicle price (example: 10500):")
+        await update.message.reply_text("Enter vehicle price:")
     elif text == "Enter Total (Out-the-Door)":
         context.user_data["mode"] = "total"
-        await update.message.reply_text("Enter total amount (example: 12000):")
+        await update.message.reply_text("Enter total amount:")
 
-# Расчёт
 async def calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         text = update.message.text.replace("$", "").replace(",", "").strip()
@@ -57,7 +52,7 @@ async def calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
             price = (total - REGISTRATION_FEE) / (1 + TAX_RATE)
             tax = price * TAX_RATE
         else:
-            await update.message.reply_text("Please press a button first.", reply_markup=keyboard)
+            await update.message.reply_text("Press a button first.", reply_markup=keyboard)
             return
 
         response = (
@@ -70,19 +65,12 @@ async def calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(response, reply_markup=keyboard)
 
     except ValueError:
-        await update.message.reply_text("Please enter a valid number (example: 10500).")
+        await update.message.reply_text("Enter a valid number.")
 
-# Создаём приложение и добавляем обработчики
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(
-    MessageHandler(
-        filters.Regex("^(Enter Vehicle Price|Enter Total \\(Out-the-Door\\))$"), 
-        handle_buttons
-    )
-)
+app.add_handler(MessageHandler(filters.Regex("^(Enter Vehicle Price|Enter Total \\(Out-the-Door\\))$"), handle_buttons))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, calculate))
 
-# Запуск бота
 app.run_polling()
